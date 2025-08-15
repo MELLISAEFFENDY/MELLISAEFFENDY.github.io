@@ -200,23 +200,45 @@ end
 
 -- Fish It specific helper functions
 function UILibrary_Fork:CreateFishingWindow(title)
+    print("🎣 UILibrary_Rayfield_Fork: Creating fishing window:", title)
+    
     local window = self:CreateWindow({
         Title = title or "🎣 Fish It Ultimate",
         LoadingTitle = "Fish It Ultimate",
         LoadingSubtitle = "Automated Fishing System"
     })
     
+    if not window then
+        error("Failed to create base window")
+    end
+    
     -- Pre-create common tabs for fishing scripts
     local mainTab = window:CreateTab("🎣 AutoFishing", nil)
     local statsTab = window:CreateTab("📊 Statistics", nil)
     local settingsTab = window:CreateTab("⚙️ Settings", nil)
     
-    return {
+    print("🎣 UILibrary_Rayfield_Fork: Tabs created - Main:", type(mainTab), "Stats:", type(statsTab))
+    
+    -- Return fishing window interface
+    local fishingWindow = {
         window = window,
         mainTab = mainTab,
         statsTab = statsTab,
-        settingsTab = settingsTab
+        settingsTab = settingsTab,
+        
+        -- Add direct access methods
+        GetMainTab = function() return mainTab end,
+        GetStatsTab = function() return statsTab end,
+        GetSettingsTab = function() return settingsTab end,
+        Destroy = function() 
+            if window and window.Destroy then
+                window:Destroy()
+            end
+        end
     }
+    
+    print("✅ UILibrary_Rayfield_Fork: Fishing window created successfully!")
+    return fishingWindow
 end
 
 -- ═══════════════════════════════════════════════════════════════
