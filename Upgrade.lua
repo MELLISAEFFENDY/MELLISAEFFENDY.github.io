@@ -40,6 +40,31 @@ local CONSTANTS = {
 }
 
 -- ═══════════════════════════════════════════════════════════════
+-- USER CONFIGURATION (EDIT THESE TO CUSTOMIZE)
+-- ═══════════════════════════════════════════════════════════════
+
+local CONFIG = {
+    -- UI Configuration
+    useUILibrary = true,  -- true = Use modern UI Library (may have issues on Delta), false = Use simple UI
+    uiLibraryURL = "https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary.lua",
+    
+    -- Safety Configuration
+    safeMode = true,      -- Enhanced safety measures for mobile executors
+    maxRetries = 3,       -- Maximum retry attempts for remote calls
+    fishingDelay = 1.5,   -- Delay between fishing attempts (seconds)
+    
+    -- Auto Features
+    autoEquipRod = true,  -- Automatically equip fishing rod
+    autoSell = false,     -- Automatically sell fish (experimental)
+    notifications = true, -- Show notifications
+}
+
+print("⚙️ Upgrade.lua Configuration:")
+print("   📱 UI Library:", CONFIG.useUILibrary and "✅ Enabled (May fail on Delta)" or "❌ Disabled (Simple UI)")
+print("   🛡️ Safe Mode:", CONFIG.safeMode and "✅ Enabled" or "❌ Disabled")
+print("   🎣 Fishing Delay:", CONFIG.fishingDelay .. "s")
+
+-- ═══════════════════════════════════════════════════════════════
 -- STATE MANAGEMENT
 -- ═══════════════════════════════════════════════════════════════
 
@@ -224,24 +249,32 @@ end
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI LIBRARY SETUP (WITH FALLBACK)
+-- UI LIBRARY SETUP (CONTROLLED BY CONFIG)
 -- ═══════════════════════════════════════════════════════════════
 
--- Try to load UI Library, fallback to simple UI if failed
+-- Try to load UI Library based on configuration
 local UILib
-local useUILibrary = false
+local useUILibrary = CONFIG.useUILibrary
 
-local success, err = pcall(function()
-    UILib = loadstring(game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary.lua"))()
-    if UILib then
-        useUILibrary = true
-        print("✅ UI Library loaded successfully")
+if CONFIG.useUILibrary then
+    print("🎨 Loading UI Library from GitHub...")
+    local success, err = pcall(function()
+        local response = game:HttpGet(CONFIG.uiLibraryURL)
+        UILib = loadstring(response)()
+        if UILib then
+            print("✅ UI Library loaded successfully!")
+        else
+            error("UI Library failed to initialize")
+        end
+    end)
+
+    if not success or not UILib then
+        print("⚠️ UI Library failed to load:", err or "Unknown error")
+        print("📱 Falling back to simple UI...")
+        useUILibrary = false
     end
-end)
-
-if not success or not useUILibrary then
-    print("⚠️ UI Library failed to load:", err or "Unknown error")
-    print("📱 Using simple UI fallback...")
+else
+    print("📱 UI Library disabled in config, using simple UI...")
     useUILibrary = false
 end
 
@@ -249,72 +282,80 @@ end
 local Window, MainSection, StatsSection, V1Button, V2Button, StatsLabel
 
 -- ═══════════════════════════════════════════════════════════════
--- UI ELEMENTS CREATION (FIXED FALLBACK)
+-- UI ELEMENTS CREATION (WITH PROPER UI LIBRARY)
 -- ═══════════════════════════════════════════════════════════════
 
--- Force simple UI for now since UI Library has issues
-useUILibrary = false
-print("🔧 Forcing simple UI for better compatibility...")
+-- Try to use UI Library first, fallback to simple UI if it fails
+print("🎨 Attempting to load UI Library...")
 
 if useUILibrary and UILib then
-    print("🎨 Creating advanced UI...")
-    -- Create main window using UI Library
-    Window = UILib:CreateWindow({
-        Title = "🚀 Upgrade.lua - Fish It Ultimate",
-        Size = UDim2.new(0.4, 0, 0.5, 0),
-        Position = UDim2.new(0.3, 0, 0.25, 0),
-        Theme = "Dark",
-        Draggable = true
-    })
+    print("✨ Creating advanced UI with UI Library...")
+    
+    local success, err = pcall(function()
+        -- Create main window using UI Library
+        Window = UILib:CreateWindow({
+            Title = "🚀 Upgrade.lua - Fish It Ultimate",
+            Size = UDim2.new(0.4, 0, 0.5, 0),
+            Position = UDim2.new(0.3, 0, 0.25, 0),
+            Theme = "Dark",
+            Draggable = true
+        })
 
-    -- Create sections
-    MainSection = Window:CreateSection("AutoFishing Systems")
-    StatsSection = Window:CreateSection("Statistics")
+        -- Create sections
+        MainSection = Window:CreateSection("AutoFishing Systems")
+        StatsSection = Window:CreateSection("Statistics")
 
-    -- Create UI elements using the library
-    V1Button = UILib:CreateButton(MainSection, {
-        Text = "🎣 AutoFishing V1 - Zayros FISHIT",
-        Color = Color3.fromRGB(80, 160, 80),
-        Height = 50,
-        Callback = function()
-            if State.autoFishingV1 then
-                stopAutoFishingV1()
-            else
-                if State.autoFishingV2 then
-                    stopAutoFishingV2()
-                end
-                startAutoFishingV1()
-            end
-        end
-    })
-
-    V2Button = UILib:CreateButton(MainSection, {
-        Text = "⚡ AutoFishing V2 - XSAN Fish It Pro",
-        Color = Color3.fromRGB(255, 140, 60),
-        Height = 50,
-        Callback = function()
-            if State.autoFishingV2 then
-                stopAutoFishingV2()
-            else
+        -- Create UI elements using the library
+        V1Button = UILib:CreateButton(MainSection, {
+            Text = "🎣 AutoFishing V1 - Zayros FISHIT",
+            Color = Color3.fromRGB(80, 160, 80),
+            Height = 50,
+            Callback = function()
                 if State.autoFishingV1 then
                     stopAutoFishingV1()
+                else
+                    if State.autoFishingV2 then
+                        stopAutoFishingV2()
+                    end
+                    startAutoFishingV1()
                 end
-                startAutoFishingV2()
             end
-        end
-    })
+        })
 
-    -- Statistics display
-    StatsLabel = UILib:CreateLabel(StatsSection, {
-        Text = "📊 Fish Caught: 0 | ⏱️ Time: 0s | 🎯 Status: Ready",
-        Height = 30
-    })
+        V2Button = UILib:CreateButton(MainSection, {
+            Text = "⚡ AutoFishing V2 - XSAN Fish It Pro",
+            Color = Color3.fromRGB(255, 140, 60),
+            Height = 50,
+            Callback = function()
+                if State.autoFishingV2 then
+                    stopAutoFishingV2()
+                else
+                    if State.autoFishingV1 then
+                        stopAutoFishingV1()
+                    end
+                    startAutoFishingV2()
+                end
+            end
+        })
 
-    print("✅ Advanced UI created successfully!")
+        -- Statistics display
+        StatsLabel = UILib:CreateLabel(StatsSection, {
+            Text = "📊 Fish Caught: 0 | ⏱️ Time: 0s | 🎯 Status: Ready",
+            Height = 30
+        })
+        
+        print("✅ Advanced UI created successfully!")
+    end)
+    
+    if not success then
+        print("❌ UI Library failed:", err)
+        useUILibrary = false
+    end
+end
 
-else
-    -- Create simple UI (ALWAYS EXECUTED NOW)
-    print("📱 Creating simple UI...")
+if not useUILibrary then
+    -- Create simple UI fallback
+    print("📱 Creating simple UI fallback...")
     
     -- Cleanup existing GUI
     if PlayerGui:FindFirstChild(CONSTANTS.GUI_NAME) then
