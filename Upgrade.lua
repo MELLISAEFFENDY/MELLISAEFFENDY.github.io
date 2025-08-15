@@ -266,11 +266,19 @@ if CONFIG.useUILibrary then
     local success, err = pcall(function()
         -- Load our fork which internally uses official Rayfield but with our API
         local response = game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Rayfield_Fork.lua", true)
-        UILib = loadstring(response)()
-        if UILib then
-            print("✅ Our Rayfield Fork loaded successfully!")
+        print("📄 Response length:", string.len(response or ""))
+        
+        if response and string.len(response) > 100 then
+            UILib = loadstring(response)()
+            if UILib and type(UILib) == "table" and UILib.CreateFishingWindow then
+                print("✅ Our Rayfield Fork loaded successfully!")
+                print("🔧 UILib type:", type(UILib))
+                print("🎯 CreateFishingWindow available:", UILib.CreateFishingWindow and "✅" or "❌")
+            else
+                error("Our Rayfield Fork failed to initialize properly - missing functions")
+            end
         else
-            error("Our Rayfield Fork failed to initialize")
+            error("Failed to fetch UILibrary_Rayfield_Fork.lua or empty response")
         end
     end)
 
@@ -278,6 +286,7 @@ if CONFIG.useUILibrary then
         print("⚠️ Our Rayfield Fork failed to load:", err or "Unknown error")
         print("📱 Falling back to simple UI...")
         useUILibrary = false
+        UILib = nil
     end
 else
     print("📱 UI Library disabled, using simple UI...")
@@ -293,17 +302,36 @@ local FishingUI, MainTab, StatsTab, V1Button, V2Button, StatsLabel
 
 -- Try to use UI Library first, fallback to simple UI if it fails
 print("🎨 Attempting to create UI...")
+print("🔍 useUILibrary:", useUILibrary)
+print("🔍 UILib type:", type(UILib))
+print("🔍 UILib:", UILib and "Available" or "nil")
 
-if useUILibrary and UILib then
+if useUILibrary and UILib and type(UILib) == "table" then
     print("✨ Creating UI with our Rayfield Fork...")
     
     local success, err = pcall(function()
+        -- Debug: Check if CreateFishingWindow exists
+        print("🎯 CreateFishingWindow function:", type(UILib.CreateFishingWindow))
+        
+        if not UILib.CreateFishingWindow then
+            error("CreateFishingWindow function not found in UILib")
+        end
+        
         -- Use our custom fishing window helper
         FishingUI = UILib:CreateFishingWindow("🚀 Upgrade.lua - Fish It Ultimate")
+        
+        if not FishingUI then
+            error("CreateFishingWindow returned nil")
+        end
+        
+        print("🎯 FishingUI created:", type(FishingUI))
         
         -- Get the pre-created tabs
         MainTab = FishingUI.mainTab
         StatsTab = FishingUI.statsTab
+        
+        print("🎯 MainTab:", type(MainTab))
+        print("🎯 StatsTab:", type(StatsTab))
 
         -- Create buttons
         V1Button = MainTab:CreateButton({
@@ -345,8 +373,13 @@ if useUILibrary and UILib then
     
     if not success then
         print("❌ Our Rayfield Fork UI creation failed:", err)
+        print("📱 Falling back to simple UI...")
         useUILibrary = false
+        UILib = nil
     end
+else
+    print("📱 Using simple UI (UILib not available)")
+    useUILibrary = false
 end
 
 if not useUILibrary then
