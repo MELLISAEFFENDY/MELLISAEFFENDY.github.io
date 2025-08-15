@@ -248,26 +248,45 @@ end
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI LIBRARY SETUP (RAYFIELD ONLY - SIMPLE & CONSISTENT)
+-- UI LIBRARY SETUP (USING OUR OWN MOBILE UI)
 -- ═══════════════════════════════════════════════════════════════
 
--- Load Rayfield directly (same as new.lua)
+-- Load UI from OUR repo (not external dependency)
 local Rayfield
 local useUILibrary = CONFIG.useUILibrary
 
 if CONFIG.useUILibrary then
-    print("🎨 Loading Rayfield UI Library (same as new.lua)...")
+    print("🎨 Loading Mobile UI from OUR repository...")
     local success, err = pcall(function()
-        Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
-        if Rayfield then
-            print("✅ Rayfield loaded successfully!")
+        print("🎯 Loading mobile-optimized UI from MELLISAEFFENDY.github.io...")
+        
+        -- Load from OUR repo (no external dependency!)
+        local uiContent = game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Mobile.lua", true)
+        if uiContent and #uiContent > 0 then
+            print("✅ Loading our mobile-optimized UI library...")
+            local uiFunc, loadError = loadstring(uiContent)
+            if uiFunc then
+                Rayfield = uiFunc()
+                if not Rayfield then
+                    error("Our mobile UI function returned nil")
+                end
+                print("✅ Our mobile-optimized UI loaded successfully!")
+            else
+                error("Failed to compile our mobile UI: " .. tostring(loadError))
+            end
         else
-            error("Rayfield failed to initialize")
+            print("⚠️ Our mobile UI not available, trying Rayfield fallback...")
+            -- Fallback to original Rayfield only if our UI fails
+            Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
+            if not Rayfield then
+                error("Failed to load fallback UI")
+            end
+            print("✅ Fallback Rayfield UI loaded successfully!")
         end
     end)
 
     if not success or not Rayfield then
-        print("⚠️ Rayfield failed to load:", err or "Unknown error")
+        print("⚠️ All UI methods failed:", err or "Unknown error")
         print("📱 Falling back to simple UI...")
         useUILibrary = false
     end
