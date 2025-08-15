@@ -32,8 +32,8 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local CONSTANTS = {
     GUI_NAME = "UpgradeScript",
-    FISHING_DELAY_V1 = 0.4,
-    FISHING_DELAY_V2 = 0.3,
+    FISHING_DELAY_V1 = 1, -- Slower for safety, no crash
+    FISHING_DELAY_V2 = 0.8, -- Still faster but safe
     DEFAULT_WALKSPEED = 16,
     MAX_WALKSPEED = 100,
     ANTI_KICK_INTERVAL = 30
@@ -74,13 +74,26 @@ local Remotes = {
 -- ═══════════════════════════════════════════════════════════════
 
 local function safeInvoke(remoteFunction, ...)
-    local success, result = pcall(remoteFunction.InvokeServer, remoteFunction, ...)
+    if not remoteFunction then 
+        warn("❌ Remote not found!")
+        return false 
+    end
+    
+    local success, result = pcall(function()
+        if remoteFunction.ClassName == "RemoteFunction" then
+            return remoteFunction:InvokeServer(...)
+        else
+            remoteFunction:FireServer(...)
+            return true
+        end
+    end)
+    
     if not success then
-        warn("❌ Failed to invoke remote:", remoteFunction.Name, "Error:", result)
+        warn("❌ Remote call failed:", remoteFunction.Name or "Unknown", "Error:", result)
         return false
     end
-    print("✅ Remote invoked successfully:", remoteFunction.Name)
-    return success, result
+    
+    return true
 end
 
 local function createNotification(title, text, duration)
@@ -105,124 +118,108 @@ local function checkRemotes()
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- AUTO FISHING V1 (from old.lua - SAFE VERSION)
+-- AUTO FISHING V1 (SAFE & WORKING VERSION)
 -- ═══════════════════════════════════════════════════════════════
+
+local fishingThreadV1
 
 local function startAutoFishingV1()
     if State.autoFishingV1 then return end
     
     State.autoFishingV1 = true
     State.startTime = tick()
-    createNotification("AutoFishing V1", "🎣 Zayros FISHIT Started!", 3)
+    createNotification("AutoFishing V1", "🎣 Starting Simple Fishing...", 3)
     
-    -- Use RunService Heartbeat with proper safety checks
-    State.connections.autoFishV1 = RunService.Heartbeat:Connect(function()
-        if not State.autoFishingV1 then return end
-        
-        local success, err = pcall(function()
-            local character = LocalPlayer.Character
-            if not character then return end
+    fishingThreadV1 = coroutine.create(function()
+        while State.autoFishingV1 do
+            pcall(function()
+                -- Simple fishing sequence
+                if safeInvoke(Remotes.EquipRod, 1) then
+                    wait(0.3)
+                    
+                    if safeInvoke(Remotes.ChargeRod, workspace:GetServerTimeNow()) then
+                        wait(0.2)
+                        
+                        if safeInvoke(Remotes.RequestFishing, -1.2379989624023438, 0.9800224985802423) then
+                            wait(0.3)
+                            
+                            -- Complete fishing
+                            Remotes.FishingComplete:FireServer()
+                            State.fishCaught = State.fishCaught + 1
+                            print("🎣 V1 Fish caught! Total:", State.fishCaught)
+                        end
+                    end
+                end
+            end)
             
-            -- Equip fishing rod first
-            Remotes.EquipRod:FireServer(1)
-            task.wait(0.3)
-            
-            -- Charge the rod
-            Remotes.ChargeRod:InvokeServer(workspace:GetServerTimeNow())
-            task.wait(0.2)
-            
-            -- Request fishing with working parameters
-            Remotes.RequestFishing:InvokeServer(-1.2379989624023438, 0.9800224985802423)
-            task.wait(0.3)
-            
-            -- Complete fishing
-            Remotes.FishingComplete:FireServer()
-            State.fishCaught = State.fishCaught + 1
-        end)
-        
-        if not success then
-            warn("V1 Fishing error:", err)
+            wait(CONSTANTS.FISHING_DELAY_V1) -- Safe delay
         end
-        
-        -- Important: Wait to prevent crash
-        task.wait(CONSTANTS.FISHING_DELAY_V1)
     end)
+    
+    coroutine.resume(fishingThreadV1)
 end
 
 local function stopAutoFishingV1()
-    if not State.autoFishingV1 then return end
-    
     State.autoFishingV1 = false
-    if State.connections.autoFishV1 then
-        State.connections.autoFishV1:Disconnect()
-        State.connections.autoFishV1 = nil
+    if fishingThreadV1 then
+        fishingThreadV1 = nil
     end
-    
-    createNotification("AutoFishing V1", "⏹️ Zayros FISHIT Stopped!", 3)
+    createNotification("AutoFishing V1", "⏹️ Simple Fishing Stopped!", 3)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- AUTO FISHING V2 (from new.lua - FIXED VERSION)
+-- AUTO FISHING V2 (ENHANCED & WORKING VERSION)
 -- ═══════════════════════════════════════════════════════════════
+
+local fishingThreadV2
 
 local function startAutoFishingV2()
     if State.autoFishingV2 then return end
     
     State.autoFishingV2 = true
     State.startTime = tick()
-    createNotification("AutoFishing V2", "⚡ XSAN Fish It Pro Started!", 3)
+    createNotification("AutoFishing V2", "⚡ Starting Enhanced Fishing...", 3)
     
-    -- Use separate thread for V2
-    State.connections.autoFishV2 = task.spawn(function()
+    fishingThreadV2 = coroutine.create(function()
         while State.autoFishingV2 do
-            local success, err = pcall(function()
-                local character = LocalPlayer.Character
-                if not character then return end
+            pcall(function()
+                -- Enhanced fishing sequence
+                if safeInvoke(Remotes.EquipRod, 1) then
+                    wait(0.25)
+                    
+                    if safeInvoke(Remotes.ChargeRod, workspace:GetServerTimeNow()) then
+                        wait(0.15)
+                        
+                        if safeInvoke(Remotes.RequestFishing, -1.2379989624023438, 0.9800224985802423) then
+                            wait(0.25)
+                            
+                            -- Complete fishing
+                            Remotes.FishingComplete:FireServer()
+                            State.fishCaught = State.fishCaught + 1
+                            print("⚡ V2 Fish caught! Total:", State.fishCaught)
+                        end
+                    end
+                end
                 
-                -- More reliable equip check
-                Remotes.EquipRod:FireServer(1)
-                task.wait(0.2)
-                
-                -- Charge with server time
-                Remotes.ChargeRod:InvokeServer(workspace:GetServerTimeNow())
-                task.wait(0.15)
-                
-                -- Request fishing - CRITICAL: Use correct parameters
-                Remotes.RequestFishing:InvokeServer(-1.2379989624023438, 0.9800224985802423)
-                task.wait(0.2)
-                
-                -- Complete fishing
-                Remotes.FishingComplete:FireServer()
-                State.fishCaught = State.fishCaught + 1
-                
-                print("🎣 V2 Fish caught! Total:", State.fishCaught)
+                -- Random human pause
+                if math.random(1, 25) == 1 then
+                    wait(math.random() * 1.5 + 0.5)
+                end
             end)
             
-            if not success then
-                warn("V2 Fishing error:", err)
-            end
-            
-            -- V2 faster delay but safe
-            task.wait(CONSTANTS.FISHING_DELAY_V2)
-            
-            -- Random pause for human-like behavior
-            if math.random(1, 20) == 1 then
-                task.wait(math.random() + 0.5)
-            end
+            wait(CONSTANTS.FISHING_DELAY_V2) -- Faster but safe
         end
     end)
+    
+    coroutine.resume(fishingThreadV2)
 end
 
 local function stopAutoFishingV2()
-    if not State.autoFishingV2 then return end
-    
     State.autoFishingV2 = false
-    if State.connections.autoFishV2 then
-        task.cancel(State.connections.autoFishV2)
-        State.connections.autoFishV2 = nil
+    if fishingThreadV2 then
+        fishingThreadV2 = nil
     end
-    
-    createNotification("AutoFishing V2", "⏹️ XSAN Fish It Pro Stopped!", 3)
+    createNotification("AutoFishing V2", "⏹️ Enhanced Fishing Stopped!", 3)
 end
 end
 
@@ -234,25 +231,33 @@ end
 local UILib
 local useUILibrary = false
 
-pcall(function()
+local success, err = pcall(function()
     UILib = loadstring(game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary.lua"))()
-    useUILibrary = true
-    print("✅ UI Library loaded successfully")
+    if UILib then
+        useUILibrary = true
+        print("✅ UI Library loaded successfully")
+    end
 end)
 
-if not useUILibrary then
-    print("⚠️ UI Library failed to load, using simple UI")
-    -- Simple UI fallback will be created below
+if not success or not useUILibrary then
+    print("⚠️ UI Library failed to load:", err or "Unknown error")
+    print("📱 Using simple UI fallback...")
+    useUILibrary = false
 end
 
 -- Variables for UI elements
 local Window, MainSection, StatsSection, V1Button, V2Button, StatsLabel
 
 -- ═══════════════════════════════════════════════════════════════
--- UI ELEMENTS CREATION (WITH FALLBACK)
+-- UI ELEMENTS CREATION (FIXED FALLBACK)
 -- ═══════════════════════════════════════════════════════════════
 
+-- Force simple UI for now since UI Library has issues
+useUILibrary = false
+print("🔧 Forcing simple UI for better compatibility...")
+
 if useUILibrary and UILib then
+    print("🎨 Creating advanced UI...")
     -- Create main window using UI Library
     Window = UILib:CreateWindow({
         Title = "🚀 Upgrade.lua - Fish It Ultimate",
@@ -305,16 +310,18 @@ if useUILibrary and UILib then
         Height = 30
     })
 
+    print("✅ Advanced UI created successfully!")
+
 else
-    -- Fallback: Create simple UI
-    print("📱 Creating simple UI for Delta compatibility...")
+    -- Create simple UI (ALWAYS EXECUTED NOW)
+    print("📱 Creating simple UI...")
     
     -- Cleanup existing GUI
     if PlayerGui:FindFirstChild(CONSTANTS.GUI_NAME) then
         PlayerGui[CONSTANTS.GUI_NAME]:Destroy()
     end
 
-    -- Create simple GUI (similar to Upgrade_Safe.lua)
+    -- Create simple GUI
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = CONSTANTS.GUI_NAME
     ScreenGui.Parent = PlayerGui
@@ -406,6 +413,8 @@ else
             startAutoFishingV2()
         end
     end)
+
+    print("✅ Simple UI created successfully!")
 end
 
 -- Update stats function
