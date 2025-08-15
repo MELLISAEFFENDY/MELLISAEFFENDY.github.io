@@ -44,8 +44,8 @@ local CONSTANTS = {
 -- ═══════════════════════════════════════════════════════════════
 
 local CONFIG = {
-    -- UI Configuration - SIMPLIFIED TO ONE METHOD ONLY
-    useUILibrary = true,  -- true = Use Rayfield (same as new.lua), false = Use simple UI
+    -- UI Configuration - OUR OWN RAYFIELD FORK  
+    useUILibrary = true,  -- true = Use our Rayfield Fork, false = Use simple UI
     
     -- Safety Configuration
     safeMode = true,      -- Enhanced safety measures for mobile executors
@@ -59,7 +59,7 @@ local CONFIG = {
 }
 
 print("⚙️ Upgrade.lua Configuration:")
-print("   📱 UI Library:", CONFIG.useUILibrary and "✅ RAYFIELD (Delta Compatible)" or "❌ Simple UI")
+print("   📱 UI Library:", CONFIG.useUILibrary and "✅ OUR RAYFIELD FORK (Controllable)" or "❌ Simple UI")
 print("   🛡️ Safe Mode:", CONFIG.safeMode and "✅ Enabled" or "❌ Disabled")
 print("   🎣 Fishing Delay:", CONFIG.fishingDelay .. "s")
 
@@ -248,27 +248,28 @@ end
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI LIBRARY SETUP (RAYFIELD ORIGINAL - NO PLAGIARISM)
+-- UI LIBRARY SETUP (OUR RAYFIELD FORK - CONTROLLABLE)
 -- ═══════════════════════════════════════════════════════════════
 
--- Load original Rayfield (ethical approach)
-local Rayfield
+-- Load our own Rayfield fork (controllable and editable by us)
+local UILib
 local useUILibrary = CONFIG.useUILibrary
 
 if CONFIG.useUILibrary then
-    print("🎨 Loading original Rayfield UI Library...")
+    print("🎨 Loading OUR Rayfield Fork...")
     local success, err = pcall(function()
-        -- Use original Rayfield from official source
-        Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
-        if Rayfield then
-            print("✅ Original Rayfield loaded successfully!")
+        -- Load our fork which internally uses official Rayfield but with our API
+        local response = game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Rayfield_Fork.lua", true)
+        UILib = loadstring(response)()
+        if UILib then
+            print("✅ Our Rayfield Fork loaded successfully!")
         else
-            error("Rayfield failed to initialize")
+            error("Our Rayfield Fork failed to initialize")
         end
     end)
 
-    if not success or not Rayfield then
-        print("⚠️ Rayfield failed to load:", err or "Unknown error")
+    if not success or not UILib then
+        print("⚠️ Our Rayfield Fork failed to load:", err or "Unknown error")
         print("📱 Falling back to simple UI...")
         useUILibrary = false
     end
@@ -278,7 +279,7 @@ else
 end
 
 -- Variables for UI elements
-local Window, MainTab, StatsTab, V1Button, V2Button, StatsLabel
+local FishingUI, MainTab, StatsTab, V1Button, V2Button, StatsLabel
 
 -- ═══════════════════════════════════════════════════════════════
 -- UI ELEMENTS CREATION (WITH PROPER UI LIBRARY)
@@ -581,15 +582,14 @@ end
 -- Debug check remotes first
 checkRemotes()
 
-if useUILibrary and Rayfield then
-    -- Use Rayfield notification
-    Rayfield:Notify({
+if useUILibrary and UILib then
+    -- Use our fork's notification system
+    UILib:Notify({
         Title = "Upgrade.lua",
-        Content = "🚀 Script loaded with Rayfield UI!\n📋 Choose AutoFishing version",
-        Duration = 5,
-        Image = 4483362458
+        Content = "🚀 Script loaded with our Rayfield Fork!\n📋 Choose AutoFishing version",
+        Duration = 5
     })
-    print("✅ Upgrade.lua loaded with Rayfield UI!")
+    print("✅ Upgrade.lua loaded with our Rayfield Fork!")
 else
     createNotification("Upgrade.lua", "🚀 Script loaded with Simple UI!\n📋 Choose AutoFishing version", 5)
     print("✅ Upgrade.lua loaded with Simple UI fallback!")
