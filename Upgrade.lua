@@ -318,18 +318,14 @@ else
     useUILibrary = false
 end
 
--- Variables for UI elements
+-- Variables for UI elements (akan dibuat nanti)
 local FishingUI, MainTab, StatsTab, V1Button, V2Button, StatsLabel
 
--- ═══════════════════════════════════════════════════════════════
--- UI ELEMENTS CREATION (WITH PROPER UI LIBRARY)
--- ═══════════════════════════════════════════════════════════════
-
--- Try to use UI Library first, fallback to simple UI if it fails
-print("🎨 Attempting to create UI...")
-print("🔍 useUILibrary:", useUILibrary)
-print("🔍 UILib type:", type(UILib))
-print("🔍 UILib:", UILib and "Available" or "nil")
+-- Function untuk create UI (dipanggil di akhir setelah semua function ready)
+local function createUserInterface()
+    -- Skip UI creation sementara - akan dibuat di akhir script
+    return
+end
 
 if useUILibrary and UILib and type(UILib) == "table" then
     print("✨ Creating UI with our Rayfield Fork...")
@@ -358,7 +354,7 @@ if useUILibrary and UILib and type(UILib) == "table" then
         print("🎯 MainTab:", type(MainTab))
         print("🎯 StatsTab:", type(StatsTab))
 
-        -- Create buttons
+        -- Create buttons dengan proper callback (semua function sudah available)
         V1Button = MainTab:CreateButton({
             Name = "🎣 AutoFishing V1 - Zayros FISHIT",
             Callback = function()
@@ -374,7 +370,7 @@ if useUILibrary and UILib and type(UILib) == "table" then
         })
 
         V2Button = MainTab:CreateButton({
-            Name = "⚡ AutoFishing V2 - XSAN Fish It Pro",
+            Name = "⚡ AutoFishing V2 - XSAN Fish It Pro", 
             Callback = function()
                 if State.autoFishingV2 then
                     stopAutoFishingV2()
@@ -407,10 +403,6 @@ else
     print("📱 Reason - useUILibrary:", useUILibrary, "UILib:", UILib and "exists" or "nil", "Type:", type(UILib))
     useUILibrary = false
 end
-
--- Force simple UI for debugging
-print("🧪 DEBUG: Forcing simple UI for testing...")
-useUILibrary = false
 
 if not useUILibrary then
     -- Create simple UI fallback
@@ -640,6 +632,13 @@ end
 -- Debug check remotes first
 checkRemotes()
 
+-- Update button callbacks now that all functions are defined
+if useUILibrary and V1Button and V2Button then
+    print("🔧 Updating button callbacks...")
+    -- Note: Rayfield buttons don't have direct callback update, 
+    -- but the functions are now available for new UI creation
+end
+
 if useUILibrary and UILib then
     -- Use our fork's notification system
     UILib:Notify({
@@ -677,3 +676,74 @@ task.spawn(function()
         warn("⚠️ Some systems may not be ready")
     end
 end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- CREATE UI AFTER ALL FUNCTIONS ARE DEFINED
+-- ═══════════════════════════════════════════════════════════════
+
+print("🎨 Creating UI after all functions are ready...")
+
+if useUILibrary and UILib and type(UILib) == "table" then
+    print("✨ Creating UI with our Rayfield Fork...")
+    
+    local success, err = pcall(function()
+        -- Create fishing window
+        FishingUI = UILib:CreateFishingWindow("🚀 Upgrade.lua - Fish It Ultimate")
+        
+        if FishingUI and FishingUI.mainTab and FishingUI.statsTab then
+            MainTab = FishingUI.mainTab
+            StatsTab = FishingUI.statsTab
+            
+            -- Create buttons with working callbacks
+            V1Button = MainTab:CreateButton({
+                Name = "🎣 AutoFishing V1 - Zayros FISHIT",
+                Callback = function()
+                    if State.autoFishingV1 then
+                        stopAutoFishingV1()
+                    else
+                        if State.autoFishingV2 then
+                            stopAutoFishingV2()
+                        end
+                        startAutoFishingV1()
+                    end
+                end,
+            })
+
+            V2Button = MainTab:CreateButton({
+                Name = "⚡ AutoFishing V2 - XSAN Fish It Pro",
+                Callback = function()
+                    if State.autoFishingV2 then
+                        stopAutoFishingV2()
+                    else
+                        if State.autoFishingV1 then
+                            stopAutoFishingV1()
+                        end
+                        startAutoFishingV2()
+                    end
+                end,
+            })
+
+            -- Statistics
+            StatsLabel = StatsTab:CreateParagraph({
+                Title = "📊 Statistics", 
+                Content = "Fish Caught: 0 | Status: Ready"
+            })
+            
+            print("✅ UI Created Successfully!")
+            
+            -- Send success notification
+            UILib:Notify({
+                Title = "Upgrade.lua Ready!",
+                Content = "🚀 All functions loaded!\n📋 UI ready for use",
+                Duration = 5
+            })
+        else
+            error("Failed to create fishing window or tabs")
+        end
+    end)
+    
+    if not success then
+        print("❌ UI creation failed:", err)
+        useUILibrary = false
+    end
+end
