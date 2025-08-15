@@ -263,22 +263,47 @@ local useUILibrary = CONFIG.useUILibrary
 
 if CONFIG.useUILibrary then
     print("🎨 Loading OUR Rayfield Fork...")
+    print("🌐 URL: https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Rayfield_Fork.lua")
+    
     local success, err = pcall(function()
         -- Load our fork which internally uses official Rayfield but with our API
         local response = game:HttpGet("https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Rayfield_Fork.lua", true)
+        print("📄 Response received:", response and "✅ YES" or "❌ NO")
         print("📄 Response length:", string.len(response or ""))
         
-        if response and string.len(response) > 100 then
-            UILib = loadstring(response)()
-            if UILib and type(UILib) == "table" and UILib.CreateFishingWindow then
+        if not response or string.len(response) < 100 then
+            error("Failed to fetch UILibrary_Rayfield_Fork.lua or empty response (Length: " .. string.len(response or "") .. ")")
+        end
+        
+        print("📄 First 100 chars:", string.sub(response, 1, 100))
+        
+        local loadFunc = loadstring(response)
+        if not loadFunc then
+            error("Failed to compile UILibrary_Rayfield_Fork.lua - syntax error")
+        end
+        
+        print("✅ Script compiled successfully, executing...")
+        UILib = loadFunc()
+        
+        print("🔧 UILib execution result:", UILib and "✅ SUCCESS" or "❌ NIL")
+        print("🔧 UILib type:", type(UILib))
+        
+        if UILib and type(UILib) == "table" then
+            print("🎯 Available functions in UILib:")
+            for k, v in pairs(UILib) do
+                if type(v) == "function" then
+                    print("   •", k)
+                end
+            end
+            
+            if UILib.CreateFishingWindow then
                 print("✅ Our Rayfield Fork loaded successfully!")
-                print("🔧 UILib type:", type(UILib))
-                print("🎯 CreateFishingWindow available:", UILib.CreateFishingWindow and "✅" or "❌")
+                print("🎯 CreateFishingWindow available: ✅")
             else
-                error("Our Rayfield Fork failed to initialize properly - missing functions")
+                error("CreateFishingWindow function not found in UILib")
             end
         else
-            error("Failed to fetch UILibrary_Rayfield_Fork.lua or empty response")
+            error("UILib is not a table or is nil (Type: " .. type(UILib) .. ")")
         end
     end)
 
@@ -379,8 +404,13 @@ if useUILibrary and UILib and type(UILib) == "table" then
     end
 else
     print("📱 Using simple UI (UILib not available)")
+    print("📱 Reason - useUILibrary:", useUILibrary, "UILib:", UILib and "exists" or "nil", "Type:", type(UILib))
     useUILibrary = false
 end
+
+-- Force simple UI for debugging
+print("🧪 DEBUG: Forcing simple UI for testing...")
+useUILibrary = false
 
 if not useUILibrary then
     -- Create simple UI fallback
