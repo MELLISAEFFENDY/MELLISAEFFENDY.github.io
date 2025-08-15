@@ -12,7 +12,13 @@
 
 print("🚀 Loading Upgrade.lua - Fish It Ultimate Script...")
 
--- ═══════════════════════════════════════════════════════════════
+-- ═══        -- Statistics
+        StatsLabel = StatsTab:CreateParagraph({
+            Title = "📊 Statistics", 
+            Content = "Fish Caught: 0 | Status: Ready"
+        })
+        
+        print("✅ Our Rayfield Fork UI created successfully!")═════════════════════════════════════════════════════
 -- SERVICES & SETUP
 -- ═══════════════════════════════════════════════════════════════
 
@@ -288,27 +294,16 @@ local FishingUI, MainTab, StatsTab, V1Button, V2Button, StatsLabel
 -- Try to use UI Library first, fallback to simple UI if it fails
 print("🎨 Attempting to create UI...")
 
-if useUILibrary and Rayfield then
-    print("✨ Creating Rayfield UI (same as new.lua)...")
+if useUILibrary and UILib then
+    print("✨ Creating UI with our Rayfield Fork...")
     
     local success, err = pcall(function()
-        -- Create Rayfield window (exactly like new.lua)
-        Window = Rayfield:CreateWindow({
-            Name = "🚀 Upgrade.lua - Fish It Ultimate",
-            LoadingTitle = "Upgrade Script",
-            LoadingSubtitle = "by MELLISA EFFENDY",
-            ConfigurationSaving = {
-                Enabled = false,
-            },
-            Discord = {
-                Enabled = false,
-            },
-            KeySystem = false,
-        })
-
-        -- Create tabs
-        MainTab = Window:CreateTab("🎣 AutoFishing", nil)
-        StatsTab = Window:CreateTab("📊 Statistics", nil)
+        -- Use our custom fishing window helper
+        FishingUI = UILib:CreateFishingWindow("🚀 Upgrade.lua - Fish It Ultimate")
+        
+        -- Get the pre-created tabs
+        MainTab = FishingUI.mainTab
+        StatsTab = FishingUI.statsTab
 
         -- Create buttons
         V1Button = MainTab:CreateButton({
@@ -345,11 +340,11 @@ if useUILibrary and Rayfield then
             Content = "Fish Caught: 0 | Status: Ready"
         })
         
-        print("✅ Rayfield UI created successfully!")
+        print("✅ Our Rayfield Fork UI created successfully!")
     end)
     
     if not success then
-        print("❌ Rayfield UI creation failed:", err)
+        print("❌ Our Rayfield Fork UI creation failed:", err)
         useUILibrary = false
     end
 end
