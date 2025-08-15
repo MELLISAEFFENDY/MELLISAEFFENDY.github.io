@@ -44,14 +44,8 @@ local CONSTANTS = {
 -- ═══════════════════════════════════════════════════════════════
 
 local CONFIG = {
-    -- UI Configuration
-    useUILibrary = true,  -- true = Use UILibrary (Rayfield-powered), false = Use simple UI
-    uiLibraryType = "rayfield_wrapper", -- "rayfield_wrapper" = Our UILibrary with Rayfield backend
-    
-    -- UI Library URLs
-    rayfieldWrapperURL = "https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary_Rayfield.lua",
-    rayfieldDirectURL = "https://sirius.menu/rayfield",
-    customUIURL = "https://raw.githubusercontent.com/MELLISAEFFENDY/MELLISAEFFENDY.github.io/main/UILibrary.lua",
+    -- UI Configuration - SIMPLIFIED TO ONE METHOD ONLY
+    useUILibrary = true,  -- true = Use Rayfield (same as new.lua), false = Use simple UI
     
     -- Safety Configuration
     safeMode = true,      -- Enhanced safety measures for mobile executors
@@ -65,7 +59,7 @@ local CONFIG = {
 }
 
 print("⚙️ Upgrade.lua Configuration:")
-print("   📱 UI Library:", CONFIG.useUILibrary and ("✅ " .. CONFIG.uiLibraryType:upper()) or "❌ Simple UI")
+print("   📱 UI Library:", CONFIG.useUILibrary and "✅ RAYFIELD (Delta Compatible)" or "❌ Simple UI")
 print("   🛡️ Safe Mode:", CONFIG.safeMode and "✅ Enabled" or "❌ Disabled")
 print("   🎣 Fishing Delay:", CONFIG.fishingDelay .. "s")
 
@@ -254,75 +248,36 @@ end
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- UI LIBRARY SETUP (RAYFIELD-POWERED UILibrary)
+-- UI LIBRARY SETUP (RAYFIELD ONLY - SIMPLE & CONSISTENT)
 -- ═══════════════════════════════════════════════════════════════
 
--- Try to load UI Library based on configuration
-local UILib
+-- Load Rayfield directly (same as new.lua)
 local Rayfield
 local useUILibrary = CONFIG.useUILibrary
 
 if CONFIG.useUILibrary then
-    if CONFIG.uiLibraryType == "rayfield_wrapper" then
-        print("🎨 Loading UILibrary with Rayfield backend...")
-        local success, err = pcall(function()
-            local response = game:HttpGet(CONFIG.rayfieldWrapperURL)
-            UILib = loadstring(response)()
-            if UILib then
-                print("✅ UILibrary (Rayfield-powered) loaded successfully!")
-            else
-                error("UILibrary failed to initialize")
-            end
-        end)
-
-        if not success or not UILib then
-            print("⚠️ UILibrary failed to load:", err or "Unknown error")
-            print("📱 Falling back to simple UI...")
-            useUILibrary = false
+    print("🎨 Loading Rayfield UI Library (same as new.lua)...")
+    local success, err = pcall(function()
+        Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
+        if Rayfield then
+            print("✅ Rayfield loaded successfully!")
+        else
+            error("Rayfield failed to initialize")
         end
-        
-    elseif CONFIG.uiLibraryType == "rayfield" then
-        print("🎨 Loading Rayfield UI Library directly...")
-        local success, err = pcall(function()
-            Rayfield = loadstring(game:HttpGet(CONFIG.rayfieldDirectURL, true))()
-            if Rayfield then
-                print("✅ Rayfield UI Library loaded successfully!")
-            else
-                error("Rayfield failed to initialize")
-            end
-        end)
+    end)
 
-        if not success or not Rayfield then
-            print("⚠️ Rayfield failed to load:", err or "Unknown error")
-            print("📱 Falling back to simple UI...")
-            useUILibrary = false
-        end
-        
-    elseif CONFIG.uiLibraryType == "custom" then
-        print("🎨 Loading Custom UI Library...")
-        local success, err = pcall(function()
-            local response = game:HttpGet(CONFIG.customUIURL)
-            UILib = loadstring(response)()
-            if UILib then
-                print("✅ Custom UI Library loaded successfully!")
-            else
-                error("Custom UI Library failed to initialize")
-            end
-        end)
-
-        if not success or not UILib then
-            print("⚠️ Custom UI Library failed to load:", err or "Unknown error")
-            print("📱 Falling back to simple UI...")
-            useUILibrary = false
-        end
+    if not success or not Rayfield then
+        print("⚠️ Rayfield failed to load:", err or "Unknown error")
+        print("📱 Falling back to simple UI...")
+        useUILibrary = false
     end
 else
-    print("📱 UI Library disabled in config, using simple UI...")
+    print("📱 UI Library disabled, using simple UI...")
     useUILibrary = false
 end
 
 -- Variables for UI elements
-local Window, MainSection, StatsSection, V1Button, V2Button, StatsLabel
+local Window, MainTab, StatsTab, V1Button, V2Button, StatsLabel
 
 -- ═══════════════════════════════════════════════════════════════
 -- UI ELEMENTS CREATION (WITH PROPER UI LIBRARY)
@@ -331,181 +286,68 @@ local Window, MainSection, StatsSection, V1Button, V2Button, StatsLabel
 -- Try to use UI Library first, fallback to simple UI if it fails
 print("🎨 Attempting to create UI...")
 
-if useUILibrary then
+if useUILibrary and Rayfield then
+    print("✨ Creating Rayfield UI (same as new.lua)...")
+    
     local success, err = pcall(function()
-        if CONFIG.uiLibraryType == "rayfield_wrapper" and UILib then
-            print("✨ Creating UI with Rayfield-powered UILibrary...")
-            
-            -- Create main window using our UILibrary (with Rayfield backend)
-            Window = UILib:CreateWindow({
-                Title = "🚀 Upgrade.lua - Fish It Ultimate",
-                Size = UDim2.new(0.4, 0, 0.5, 0),
-                Position = UDim2.new(0.3, 0, 0.25, 0),
-                Theme = "Dark",
-                Draggable = true
-            })
+        -- Create Rayfield window (exactly like new.lua)
+        Window = Rayfield:CreateWindow({
+            Name = "🚀 Upgrade.lua - Fish It Ultimate",
+            LoadingTitle = "Upgrade Script",
+            LoadingSubtitle = "by MELLISA EFFENDY",
+            ConfigurationSaving = {
+                Enabled = false,
+            },
+            Discord = {
+                Enabled = false,
+            },
+            KeySystem = false,
+        })
 
-            -- Create sections
-            MainSection = Window:CreateSection("🎣 AutoFishing Systems")
-            StatsSection = Window:CreateSection("📊 Statistics")
+        -- Create tabs
+        MainTab = Window:CreateTab("🎣 AutoFishing", nil)
+        StatsTab = Window:CreateTab("📊 Statistics", nil)
 
-            -- Create UI elements using our familiar API
-            V1Button = UILib:CreateButton(MainSection, {
-                Text = "🎣 AutoFishing V1 - Zayros FISHIT",
-                Color = Color3.fromRGB(80, 160, 80),
-                Height = 50,
-                Callback = function()
-                    if State.autoFishingV1 then
-                        stopAutoFishingV1()
-                    else
-                        if State.autoFishingV2 then
-                            stopAutoFishingV2()
-                        end
-                        startAutoFishingV1()
-                    end
-                end
-            })
-
-            V2Button = UILib:CreateButton(MainSection, {
-                Text = "⚡ AutoFishing V2 - XSAN Fish It Pro",
-                Color = Color3.fromRGB(255, 140, 60),
-                Height = 50,
-                Callback = function()
+        -- Create buttons
+        V1Button = MainTab:CreateButton({
+            Name = "🎣 AutoFishing V1 - Zayros FISHIT",
+            Callback = function()
+                if State.autoFishingV1 then
+                    stopAutoFishingV1()
+                else
                     if State.autoFishingV2 then
                         stopAutoFishingV2()
-                    else
-                        if State.autoFishingV1 then
-                            stopAutoFishingV1()
-                        end
-                        startAutoFishingV2()
                     end
+                    startAutoFishingV1()
                 end
-            })
+            end,
+        })
 
-            -- Statistics display
-            StatsLabel = UILib:CreateLabel(StatsSection, {
-                Text = "Fish Caught: 0 | Status: Ready",
-                Height = 30
-            })
-            
-            print("✅ UILibrary (Rayfield-powered) UI created successfully!")
-            
-        elseif CONFIG.uiLibraryType == "rayfield" and Rayfield then
-            print("✨ Creating Rayfield UI directly...")
-            
-            -- Create main window using Rayfield directly
-            Window = Rayfield:CreateWindow({
-                Name = "🚀 Upgrade.lua - Fish It Ultimate",
-                LoadingTitle = "Upgrade Script",
-                LoadingSubtitle = "by MELLISA EFFENDY",
-                ConfigurationSaving = {
-                    Enabled = false,
-                },
-                Discord = {
-                    Enabled = false,
-                },
-                KeySystem = false,
-            })
-
-            -- Create main tab
-            local MainTab = Window:CreateTab("🎣 AutoFishing", nil)
-            local StatsTab = Window:CreateTab("📊 Statistics", nil)
-
-            -- Create AutoFishing buttons
-            V1Button = MainTab:CreateButton({
-                Name = "🎣 AutoFishing V1 - Zayros FISHIT",
-                Callback = function()
+        V2Button = MainTab:CreateButton({
+            Name = "⚡ AutoFishing V2 - XSAN Fish It Pro",
+            Callback = function()
+                if State.autoFishingV2 then
+                    stopAutoFishingV2()
+                else
                     if State.autoFishingV1 then
                         stopAutoFishingV1()
-                    else
-                        if State.autoFishingV2 then
-                            stopAutoFishingV2()
-                        end
-                        startAutoFishingV1()
                     end
-                end,
-            })
-
-            V2Button = MainTab:CreateButton({
-                Name = "⚡ AutoFishing V2 - XSAN Fish It Pro",
-                Callback = function()
-                    if State.autoFishingV2 then
-                        stopAutoFishingV2()
-                    else
-                        if State.autoFishingV1 then
-                            stopAutoFishingV1()
-                        end
-                        startAutoFishingV2()
-                    end
-                end,
-            })
-
-            -- Statistics paragraph
-            StatsLabel = StatsTab:CreateParagraph({Title = "📊 Statistics", Content = "Fish Caught: 0 | Status: Ready"})
-            
-            print("✅ Rayfield UI created successfully!")
-            
-        elseif CONFIG.uiLibraryType == "custom" and UILib then
-            print("✨ Creating Custom UI...")
-            
-            -- Create main window using Custom UI Library
-            Window = UILib:CreateWindow({
-                Title = "🚀 Upgrade.lua - Fish It Ultimate",
-                Size = UDim2.new(0.4, 0, 0.5, 0),
-                Position = UDim2.new(0.3, 0, 0.25, 0),
-                Theme = "Dark",
-                Draggable = true
-            })
-
-            -- Create sections
-            MainSection = Window:CreateSection("AutoFishing Systems")
-            StatsSection = Window:CreateSection("Statistics")
-
-            -- Create UI elements using the library
-            V1Button = UILib:CreateButton(MainSection, {
-                Text = "🎣 AutoFishing V1 - Zayros FISHIT",
-                Color = Color3.fromRGB(80, 160, 80),
-                Height = 50,
-                Callback = function()
-                    if State.autoFishingV1 then
-                        stopAutoFishingV1()
-                    else
-                        if State.autoFishingV2 then
-                            stopAutoFishingV2()
-                        end
-                        startAutoFishingV1()
-                    end
+                    startAutoFishingV2()
                 end
-            })
+            end,
+        })
 
-            V2Button = UILib:CreateButton(MainSection, {
-                Text = "⚡ AutoFishing V2 - XSAN Fish It Pro",
-                Color = Color3.fromRGB(255, 140, 60),
-                Height = 50,
-                Callback = function()
-                    if State.autoFishingV2 then
-                        stopAutoFishingV2()
-                    else
-                        if State.autoFishingV1 then
-                            stopAutoFishingV1()
-                        end
-                        startAutoFishingV2()
-                    end
-                end
-            })
-
-            -- Statistics display
-            StatsLabel = UILib:CreateLabel(StatsSection, {
-                Text = "📊 Fish Caught: 0 | ⏱️ Time: 0s | 🎯 Status: Ready",
-                Height = 30
-            })
-            
-            print("✅ Custom UI created successfully!")
-        end
+        -- Statistics
+        StatsLabel = StatsTab:CreateParagraph({
+            Title = "� Statistics", 
+            Content = "Fish Caught: 0 | Status: Ready"
+        })
+        
+        print("✅ Rayfield UI created successfully!")
     end)
     
     if not success then
-        print("❌ UI Library creation failed:", err)
+        print("❌ Rayfield UI creation failed:", err)
         useUILibrary = false
     end
 end
@@ -615,7 +457,7 @@ if not useUILibrary then
     print("✅ Simple UI created successfully!")
 end
 
--- Update stats function
+-- Update stats function - SIMPLIFIED
 local function updateStats()
     if State.startTime > 0 then
         local timeElapsed = math.floor(tick() - State.startTime)
@@ -628,28 +470,14 @@ local function updateStats()
         
         local statsText = "Fish Caught: " .. State.fishCaught .. " | Time: " .. timeElapsed .. "s | Status: " .. status
         
-        -- Update stats based on UI type
+        -- Simple update - no complex checking
         if useUILibrary and StatsLabel then
-            if CONFIG.uiLibraryType == "rayfield_wrapper" then
-                -- UILibrary wrapper with Rayfield backend
-                pcall(function()
-                    if StatsLabel.SetText then
-                        StatsLabel.SetText("📊 " .. statsText)
-                    end
-                end)
-            elseif CONFIG.uiLibraryType == "rayfield" then
-                -- Rayfield direct uses :Set() method for Paragraphs
-                pcall(function()
-                    StatsLabel:Set({Title = "📊 Statistics", Content = statsText})
-                end)
-            elseif CONFIG.uiLibraryType == "custom" and StatsLabel.SetText then
-                -- Custom UI uses SetText method
-                pcall(function()
-                    StatsLabel.SetText("📊 " .. statsText)
-                end)
-            end
+            -- Rayfield paragraph update
+            pcall(function()
+                StatsLabel:Set({Title = "📊 Statistics", Content = statsText})
+            end)
         elseif StatsLabel and StatsLabel.Text then
-            -- Simple UI uses Text property
+            -- Simple UI text update
             StatsLabel.Text = "📊 " .. statsText
         end
     end
@@ -752,9 +580,15 @@ end
 -- Debug check remotes first
 checkRemotes()
 
-if useUILibrary then
-    UILib:Notification("Upgrade.lua", "🚀 Script loaded with UI Library!\n📋 Choose AutoFishing version", 5, "Success")
-    print("✅ Upgrade.lua loaded with UI Library!")
+if useUILibrary and Rayfield then
+    -- Use Rayfield notification
+    Rayfield:Notify({
+        Title = "Upgrade.lua",
+        Content = "🚀 Script loaded with Rayfield UI!\n📋 Choose AutoFishing version",
+        Duration = 5,
+        Image = 4483362458
+    })
+    print("✅ Upgrade.lua loaded with Rayfield UI!")
 else
     createNotification("Upgrade.lua", "🚀 Script loaded with Simple UI!\n📋 Choose AutoFishing version", 5)
     print("✅ Upgrade.lua loaded with Simple UI fallback!")
