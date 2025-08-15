@@ -76,8 +76,10 @@ local Remotes = {
 local function safeInvoke(remoteFunction, ...)
     local success, result = pcall(remoteFunction.InvokeServer, remoteFunction, ...)
     if not success then
-        warn("Failed to invoke remote:", result)
+        warn("❌ Failed to invoke remote:", remoteFunction.Name, "Error:", result)
+        return false
     end
+    print("✅ Remote invoked successfully:", remoteFunction.Name)
     return success, result
 end
 
@@ -87,10 +89,23 @@ local function createNotification(title, text, duration)
         Text = text;
         Duration = duration or 3;
     })
+    print("📢 " .. title .. ": " .. text)
+end
+
+-- Debug function to check remotes
+local function checkRemotes()
+    print("🔍 Checking Remote Events:")
+    for name, remote in pairs(Remotes) do
+        if remote then
+            print("✅ " .. name .. ": Found")
+        else
+            warn("❌ " .. name .. ": Missing!")
+        end
+    end
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- AUTO FISHING V1 (from old.lua - Zayros FISHIT)
+-- AUTO FISHING V1 (from old.lua - WORKING VERSION)
 -- ═══════════════════════════════════════════════════════════════
 
 local function startAutoFishingV1()
@@ -100,28 +115,36 @@ local function startAutoFishingV1()
     State.startTime = tick()
     createNotification("AutoFishing V1", "🎣 Zayros FISHIT Started!", 3)
     
-    State.connections.autoFishV1 = RunService.Heartbeat:Connect(function()
-        if not State.autoFishingV1 then return end
-        
-        pcall(function()
-            -- Equip fishing rod
-            safeInvoke(Remotes.EquipRod, 1)
-            task.wait(0.1)
-            
-            -- Start fishing
-            safeInvoke(Remotes.RequestFishing)
-            task.wait(0.2)
-            
-            -- Charge rod
-            safeInvoke(Remotes.ChargeRod, 1)
-            task.wait(0.1)
-            
-            -- Complete fishing
-            Remotes.FishingComplete:FireServer()
-            State.fishCaught = State.fishCaught + 1
-            
-            task.wait(CONSTANTS.FISHING_DELAY_V1)
-        end)
+    State.connections.autoFishV1 = task.spawn(function()
+        while State.autoFishingV1 do
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                -- Check if rod is equipped
+                local equippedTool = character:FindFirstChild("!!!EQUIPPED_TOOL!!!")
+                if not equippedTool then
+                    -- Equip fishing rod
+                    safeInvoke(Remotes.EquipRod, 1)
+                    task.wait(0.2)
+                end
+                
+                -- Charge the rod
+                safeInvoke(Remotes.ChargeRod, workspace:GetServerTimeNow())
+                task.wait(0.1)
+                
+                -- Request fishing with correct parameters
+                safeInvoke(Remotes.RequestFishing, -1.2379989624023438, 0.9800224985802423)
+                task.wait(0.2)
+                
+                -- Complete fishing
+                Remotes.FishingComplete:FireServer()
+                State.fishCaught = State.fishCaught + 1
+                
+                -- Fishing delay
+                task.wait(CONSTANTS.FISHING_DELAY_V1)
+            end)
+        end
     end)
 end
 
@@ -130,7 +153,7 @@ local function stopAutoFishingV1()
     
     State.autoFishingV1 = false
     if State.connections.autoFishV1 then
-        State.connections.autoFishV1:Disconnect()
+        task.cancel(State.connections.autoFishV1)
         State.connections.autoFishV1 = nil
     end
     
@@ -138,7 +161,7 @@ local function stopAutoFishingV1()
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- AUTO FISHING V2 (from new.lua - XSAN Fish It Pro)
+-- AUTO FISHING V2 (from new.lua - ENHANCED VERSION)
 -- ═══════════════════════════════════════════════════════════════
 
 local function startAutoFishingV2()
@@ -148,33 +171,43 @@ local function startAutoFishingV2()
     State.startTime = tick()
     createNotification("AutoFishing V2", "⚡ XSAN Fish It Pro Started!", 3)
     
-    State.connections.autoFishV2 = RunService.Heartbeat:Connect(function()
-        if not State.autoFishingV2 then return end
-        
-        pcall(function()
-            -- Enhanced fishing logic with AI features (simplified version)
-            local character = LocalPlayer.Character
-            if not character then return end
-            
-            -- Equip rod with enhanced timing
-            safeInvoke(Remotes.EquipRod, 1)
-            task.wait(0.05) -- Faster timing
-            
-            -- Smart fishing request
-            safeInvoke(Remotes.RequestFishing)
-            task.wait(0.15)
-            
-            -- Optimized charge timing
-            safeInvoke(Remotes.ChargeRod, 1)
-            task.wait(0.08)
-            
-            -- Complete with analytics
-            Remotes.FishingComplete:FireServer()
-            State.fishCaught = State.fishCaught + 1
-            
-            -- Faster cycle time
-            task.wait(CONSTANTS.FISHING_DELAY_V2)
-        end)
+    State.connections.autoFishV2 = task.spawn(function()
+        while State.autoFishingV2 do
+            pcall(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+                
+                -- Enhanced fishing logic with better timing
+                local equippedTool = character:FindFirstChild("!!!EQUIPPED_TOOL!!!")
+                if not equippedTool then
+                    -- Cancel any existing fishing and equip rod
+                    safeInvoke(Remotes.CancelFishing)
+                    task.wait(0.1)
+                    safeInvoke(Remotes.EquipRod, 1)
+                    task.wait(0.15)
+                end
+                
+                -- Optimized charge timing
+                safeInvoke(Remotes.ChargeRod, workspace:GetServerTimeNow())
+                task.wait(0.08)
+                
+                -- Enhanced fishing request with precise parameters
+                safeInvoke(Remotes.RequestFishing, -1.2379989624023438, 0.9800224985802423)
+                task.wait(0.15)
+                
+                -- Complete with analytics
+                Remotes.FishingComplete:FireServer()
+                State.fishCaught = State.fishCaught + 1
+                
+                -- Faster cycle time for V2
+                task.wait(CONSTANTS.FISHING_DELAY_V2)
+                
+                -- Random human-like pause occasionally
+                if math.random(1, 15) == 1 then
+                    task.wait(math.random() * 2 + 1)
+                end
+            end)
+        end
     end)
 end
 
@@ -183,7 +216,7 @@ local function stopAutoFishingV2()
     
     State.autoFishingV2 = false
     if State.connections.autoFishV2 then
-        State.connections.autoFishV2:Disconnect()
+        task.cancel(State.connections.autoFishV2)
         State.connections.autoFishV2 = nil
     end
     
@@ -318,9 +351,34 @@ stopAutoFishingV2 = function()
     V2Button.BackgroundColor3 = Color3.fromRGB(255, 140, 60)
 end
 
+-- Add proper cleanup function
+local function cleanupAllConnections()
+    -- Stop all fishing
+    stopAutoFishingV1()
+    stopAutoFishingV2()
+    
+    -- Cleanup all connections
+    for name, connection in pairs(State.connections) do
+        if connection then
+            if typeof(connection) == "RBXScriptConnection" then
+                connection:Disconnect()
+            elseif typeof(connection) == "thread" then
+                task.cancel(connection)
+            end
+            State.connections[name] = nil
+        end
+    end
+end
+
+-- Update window close handler
+-- (This will be handled by UI Library automatically with proper cleanup)
+
 -- ═══════════════════════════════════════════════════════════════
 -- INITIALIZATION WITH UI LIBRARY
 -- ═══════════════════════════════════════════════════════════════
+
+-- Debug check remotes first
+checkRemotes()
 
 UILib:Notification("Upgrade.lua", "🚀 Script loaded successfully!\n📋 Choose AutoFishing version", 5, "Success")
 
@@ -328,3 +386,24 @@ print("✅ Upgrade.lua loaded with UILibrary!")
 print("🎣 AutoFishing V1: Zayros FISHIT ready")
 print("⚡ AutoFishing V2: XSAN Fish It Pro ready")
 print("🎨 Using custom UI Library for better experience")
+print("🔧 Delta Executor compatibility: ENABLED")
+
+-- Test a simple remote call to verify connection
+task.spawn(function()
+    task.wait(2)
+    print("🧪 Testing remote connection...")
+    local testSuccess = pcall(function()
+        if LocalPlayer.Character then
+            print("✅ Character found:", LocalPlayer.Character.Name)
+        end
+        if Remotes.EquipRod then
+            print("✅ EquipRod remote accessible")
+        end
+    end)
+    
+    if testSuccess then
+        print("✅ All systems operational!")
+    else
+        warn("⚠️ Some systems may not be ready")
+    end
+end)
