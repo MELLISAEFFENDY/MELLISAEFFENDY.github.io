@@ -43,18 +43,48 @@ end
 local serviceTests = testServices()
 
 -- ═══════════════════════════════════════════════════════════════
--- SERVICES & CORE SETUP
+-- SERVICES & SETUP WITH ERROR HANDLING
 -- ═══════════════════════════════════════════════════════════════
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
-local TweenService = game:GetService("TweenService")
+-- Safe service loading with error handling
+local Players, ReplicatedStorage, UserInputService, TweenService, RunService, StarterGui
+local LocalPlayer
 
-local LocalPlayer = Players.LocalPlayer
+local function safeGetService(serviceName)
+    local success, service = pcall(function()
+        return game:GetService(serviceName)
+    end)
+    return success and service or nil
+end
+
+-- Initialize services safely
+Players = safeGetService("Players")
+ReplicatedStorage = safeGetService("ReplicatedStorage")
+UserInputService = safeGetService("UserInputService")
+TweenService = safeGetService("TweenService")
+RunService = safeGetService("RunService")
+StarterGui = safeGetService("StarterGui")
+
+-- Ensure basic services are available
+if not Players then
+    error("❌ Critical: Players service not available")
+    return
+end
+
+LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    error("❌ Critical: LocalPlayer not found")
+    return
+end
+
+-- Print service status
+print("🔧 Service Status:")
+print("  Players:", Players and "✅" or "❌")
+print("  ReplicatedStorage:", ReplicatedStorage and "✅" or "❌")
+print("  UserInputService:", UserInputService and "✅" or "❌")
+print("  TweenService:", TweenService and "✅" or "❌")
+print("  RunService:", RunService and "✅" or "❌")
+print("  StarterGui:", StarterGui and "✅" or "❌")
 
 -- Wait for character to load
 if not LocalPlayer.Character then
@@ -66,48 +96,133 @@ end
 print("✅ Character loaded successfully!")
 
 -- ═══════════════════════════════════════════════════════════════
--- UI STATE MANAGEMENT
+-- UI CREATION WITH MULTIPLE FALLBACK METHODS
 -- ═══════════════════════════════════════════════════════════════
 
+-- UI State Management
 local UIState = {
     isMinimized = false,
-    isDragging = false,
-    dragStart = nil,
-    startPos = nil
+    isLoaded = false
 }
 
+-- Create ScreenGui with multiple parent attempts
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BotFishItV1"
+ScreenGui.ResetOnSpawn = false
+
+-- Try multiple parent methods for maximum compatibility
+local function setupScreenGui()
+    local success = false
+    
+    -- Method 1: Try PlayerGui (most common)
+    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+        success = pcall(function()
+            ScreenGui.Parent = LocalPlayer.PlayerGui
+        end)
+        if success then
+            print("✅ UI: Attached to PlayerGui")
+            return true
+        end
+    end
+    
+    -- Method 2: Try CoreGui (for exploits)
+    if not success then
+        success = pcall(function()
+            ScreenGui.Parent = game:GetService("CoreGui")
+        end)
+        if success then
+            print("✅ UI: Attached to CoreGui")
+            return true
+        end
+    end
+    
+    -- Method 3: Try StarterGui (fallback)
+    if not success and StarterGui then
+        success = pcall(function()
+            ScreenGui.Parent = StarterGui
+        end)
+        if success then
+            print("✅ UI: Attached to StarterGui")
+            return true
+        end
+    end
+    
+    -- Method 4: Emergency - try Workspace
+    if not success then
+        success = pcall(function()
+            ScreenGui.Parent = game.Workspace
+        end)
+        if success then
+            print("⚠️ UI: Emergency attachment to Workspace")
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Setup ScreenGui with error handling
+local uiSetupSuccess = setupScreenGui()
+if not uiSetupSuccess then
+    error("❌ Critical: Cannot create UI - No valid parent found")
+    return
+end
+
 -- ═══════════════════════════════════════════════════════════════
--- NOTIFICATION SYSTEM (Android Compatible)
+-- ENHANCED NOTIFICATION SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 
-local function Notify(title, text, duration)
-    duration = duration or 3
-    
-    -- Multiple notification methods for Android compatibility
-    local notificationSent = false
-    
-    -- Method 1: StarterGui notification
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title or "BOT FISH IT V1",
-            Text = text or "Notification", 
-            Duration = duration,
-            Icon = "rbxassetid://6023426923"
-        })
-        notificationSent = true
-    end)
-    
-    -- Method 2: Print fallback (always works)
-    print("📢 " .. (title or "BOT FISH IT V1") .. ": " .. (text or "Notification"))
-    
-    -- Method 3: Chat message fallback for Android
-    if not notificationSent then
-        pcall(function()
-            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-                "[BOT FISH IT V1] " .. (text or "Notification"), "All"
-            )
+local function Notify(title, message)
+    -- Method 1: Try StarterGui notification
+    local success1 = false
+    if StarterGui then
+        success1 = pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = message,
+                Duration = 5,
+                Icon = "rbxassetid://0"
+            })
         end)
     end
+    
+    -- Method 2: Print to console (always works)
+    print("📢 " .. title .. ": " .. message)
+    
+    -- Method 3: Try chat message as fallback
+    if not success1 then
+        pcall(function()
+            game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync("🤖 " .. title .. ": " .. message)
+        end)
+    end
+    
+    -- Method 4: Force UI feedback
+    pcall(function()
+        if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+            -- Create temporary label for critical notifications
+            local tempGui = Instance.new("ScreenGui")
+            tempGui.Name = "TempNotification"
+            tempGui.Parent = LocalPlayer.PlayerGui
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0, 300, 0, 60)
+            label.Position = UDim2.new(0.5, -150, 0, 10)
+            label.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextScaled = true
+            label.Font = Enum.Font.SourceSansBold
+            label.Text = title .. "
+" .. message
+            label.Parent = tempGui
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 8)
+            corner.Parent = label
+            
+            -- Auto remove after 3 seconds
+            game:GetService("Debris"):AddItem(tempGui, 3)
+        end
+    end)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -518,25 +633,88 @@ local FishingState = {
 local Rs = ReplicatedStorage
 local Remotes = {}
 
--- Try to find remotes with error handling
-local remotesFound = false
-pcall(function()
-    local net = Rs.Packages._Index["sleitnick_net@0.2.0"].net
-    Remotes = {
-        EquipRod = net["RE/EquipToolFromHotbar"],
-        UnEquipRod = net["RE/UnequipToolFromHotbar"],
-        RequestFishing = net["RF/RequestFishingMinigameStarted"],
-        ChargeRod = net["RF/ChargeFishingRod"],
-        FishingComplete = net["RE/FishingCompleted"],
-        CancelFishing = net["RF/CancelFishingInputs"],
-        SellAll = net["RF/SellAllItems"]
-    }
-    remotesFound = true
-    print("✅ Game remotes found and loaded")
-end)
+-- Enhanced remote detection with better error handling
+local function findRemotes()
+    if not Rs then
+        print("⚠️ ReplicatedStorage not available - using demo mode")
+        return false
+    end
+    
+    local success = pcall(function()
+        -- Method 1: Try sleitnick_net path
+        local packages = Rs:FindFirstChild("Packages")
+        if packages then
+            local index = packages:FindFirstChild("_Index")
+            if index then
+                local netPackage = index:FindFirstChild("sleitnick_net@0.2.0")
+                if netPackage then
+                    local net = netPackage:FindFirstChild("net")
+                    if net then
+                        Remotes = {
+                            EquipRod = net:FindFirstChild("RE/EquipToolFromHotbar"),
+                            UnEquipRod = net:FindFirstChild("RE/UnequipToolFromHotbar"),
+                            RequestFishing = net:FindFirstChild("RF/RequestFishingMinigameStarted"),
+                            ChargeRod = net:FindFirstChild("RF/ChargeFishingRod"),
+                            FishingComplete = net:FindFirstChild("RE/FishingCompleted"),
+                            CancelFishing = net:FindFirstChild("RF/CancelFishingInputs"),
+                            SellAll = net:FindFirstChild("RF/SellAllItems")
+                        }
+                        return true
+                    end
+                end
+            end
+        end
+        
+        -- Method 2: Try direct ReplicatedStorage children
+        Remotes = {
+            RequestFishing = Rs:FindFirstChild("RequestFishing"),
+            ChargeRod = Rs:FindFirstChild("ChargeRod"),
+            FishingComplete = Rs:FindFirstChild("FishingComplete")
+        }
+        
+        return Remotes.RequestFishing ~= nil
+    end)
+    
+    return success
+end
 
-if not remotesFound then
-    print("⚠️ Game remotes not found - Demo mode enabled")
+local remotesFound = findRemotes()
+
+-- Count available remotes
+local remoteCount = 0
+for name, remote in pairs(Remotes) do
+    if remote then
+        remoteCount = remoteCount + 1
+    end
+end
+
+if remotesFound and remoteCount > 0 then
+    print("🌐 Remote Events: ✅ Found " .. remoteCount .. " remotes")
+else
+    print("🌐 Remote Events: ⚠️ Demo mode active (no remotes found)")
+    
+    -- Create demo remotes that just print
+    Remotes = {
+        RequestFishing = {
+            InvokeServer = function() 
+                print("🎣 [DEMO] RequestFishing called")
+                return true
+            end
+        },
+        ChargeRod = {
+            InvokeServer = function(power) 
+                print("⚡ [DEMO] ChargeRod called with power:", power)
+                return true
+            end
+        },
+        FishingComplete = {
+            FireServer = function() 
+                print("✅ [DEMO] FishingComplete called")
+                return true
+            end
+        }
+    }
+    
     Notify("Demo Mode", "⚠️ Game remotes not detected\nDemo mode enabled for testing")
 end
 
@@ -1104,32 +1282,93 @@ CloseCorner.Parent = CloseBtn
 -- FINAL INITIALIZATION & STATUS REPORTING
 -- ═══════════════════════════════════════════════════════════════
 
--- Check Android/Mobile environment
-if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-    Notify("Android Compatible", "📱 Mobile UI initialized successfully!")
-    print("📱 Android/Mobile environment detected - UI optimized")
-else
-    print("🖥️ Desktop environment detected")
+-- Force UI visibility check
+task.wait(0.5) -- Give UI time to load
+
+local function verifyUIVisible()
+    local isVisible = false
+    
+    -- Check if ScreenGui is properly attached and visible
+    if ScreenGui and ScreenGui.Parent then
+        print("✅ ScreenGui parent:", ScreenGui.Parent.Name)
+        
+        if MainFrame and MainFrame.Parent then
+            print("✅ MainFrame created and attached")
+            isVisible = true
+            MainFrame.Visible = true -- Force visible
+            
+            -- Force bring to front
+            pcall(function()
+                if ScreenGui.Parent == LocalPlayer.PlayerGui then
+                    ScreenGui.DisplayOrder = 999999
+                end
+            end)
+        else
+            print("❌ MainFrame not properly created")
+        end
+    else
+        print("❌ ScreenGui not properly attached")
+    end
+    
+    return isVisible
 end
 
--- Report service availability
-print("🔧 Service Status Check:")
+-- Verify UI is visible
+local uiVisible = verifyUIVisible()
+
+-- Mark UI as loaded
+UIState.isLoaded = uiVisible
+
+-- Check Android/Mobile environment
+local isMobile = UserInputService and UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+if isMobile then
+    print("📱 Android/Mobile environment detected - UI optimized")
+    Notify("Mobile UI Ready", "📱 Android-compatible UI loaded!")
+else
+    print("🖥️ Desktop environment detected")
+    Notify("Desktop UI Ready", "🖥️ Desktop UI loaded!")
+end
+
+-- Final comprehensive status report
+print("\n🔧 COMPLETE SYSTEM STATUS:")
 print("  ▪ Players:", Players and "✅" or "❌")
 print("  ▪ ReplicatedStorage:", ReplicatedStorage and "✅" or "❌")
 print("  ▪ UserInputService:", UserInputService and "✅" or "❌")
 print("  ▪ TweenService:", TweenService and "✅" or "❌")
-print("  ▪ RunService:", RunService and "✅" or "❌")
+print("  ▪ UI Visible:", uiVisible and "✅" or "❌")
+print("  ▪ Mobile Device:", isMobile and "✅" or "❌")
 
--- Report remote events status
-if next(Remotes) then
-    print("🌐 Remote Events: ✅ Connected")
-else
-    print("🌐 Remote Events: ⚠️ Using demo mode")
+-- Report remote events status with count
+local remoteCount = 0
+for name, remote in pairs(Remotes) do
+    if remote then remoteCount = remoteCount + 1 end
 end
 
--- Final status report
-print("✅ BOT FISH IT V1 - Complete Android-compatible version loaded!")
-print("🎣 Features: Modern table UI, minimize/floating button, dual AFK systems")
-print("📱 Android optimized with responsive sizing and touch controls")
-print("🔧 Comprehensive error handling and fallback systems included")
-print("🚀 Ready to use on all platforms including mobile exploits!")
+if remoteCount > 0 then
+    print("  ▪ Remote Events: ✅ " .. remoteCount .. " connected")
+else
+    print("  ▪ Remote Events: ⚠️ Demo mode active")
+end
+
+-- Final success/failure report
+if uiVisible then
+    print("\n✅ BOT FISH IT V1 - Successfully loaded and ready!")
+    print("🎣 Features: Modern table UI, minimize/floating button, dual AFK systems")
+    print("📱 Android optimized with responsive sizing and touch controls")
+    print("� Ready to use on all platforms including mobile exploits!")
+    
+    -- Show welcome message
+    task.wait(1)
+    Notify("BOT FISH IT V1", 
+        "🔥 Successfully loaded!\n\n" ..
+        "🎣 AFK 1: Simple & Fast\n" ..
+        "⚡ AFK 2: Advanced & AI\n\n" ..
+        "Click minimize (➖) to use floating button\n" ..
+        "Toggle ON/OFF to start fishing!")
+else
+    print("\n❌ BOT FISH IT V1 - UI loading failed!")
+    print("Please check console for errors and try reloading the script")
+    
+    -- Try emergency notification
+    Notify("UI Load Failed", "❌ UI could not be displayed\nCheck console for details")
+end
